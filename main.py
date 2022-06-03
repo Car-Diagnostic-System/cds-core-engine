@@ -6,8 +6,6 @@ import pickle
 import boto3
 from kafka import KafkaConsumer, KafkaProducer
 from pythainlp import word_tokenize, subword_tokenize
-from pythainlp.corpus import thai_words
-from pythainlp.util import dict_trie
 from scipy.sparse import hstack
 
 CONSUMER_TOPIC_NAME = "QUERY"
