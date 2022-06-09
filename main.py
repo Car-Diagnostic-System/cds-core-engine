@@ -70,24 +70,26 @@ def download_s3_folder(bucket_name, s3_folder, local_dir=None):
             continue
         bucket.download_file(obj.key, target)
 
-download_s3_folder('cds-bucket', 'pickles')
 
-# NOTE: Download pickle file from s3
-trie = pickle.load(open('pickles/trie.pkl', 'rb'))
-models = pickle.load(open('pickles/models.pkl', 'rb'))
-token_vec = pickle.load(open('pickles/token_vec.pkl', 'rb'))
-syllable_vec = pickle.load(open('pickles/syllable_vec.pkl', 'rb'))
-topic_vec = pickle.load(open('pickles/topic_vec.pkl', 'rb'))
-lda_topic = pickle.load(open('pickles/lda_topic.pkl', 'rb'))
-print('Load file successfully')
+if __name__ == '__main__':
+    download_s3_folder('cds-bucket', 'pickles')
 
-for msg in consumer:
-    print('Diagnose process is started')
-    result = transformQuery(models, token_vec, syllable_vec, topic_vec, msg.value['symptom'])
+    # NOTE: Download pickle file from s3
+    trie = pickle.load(open('pickles/trie.pkl', 'rb'))
+    models = pickle.load(open('pickles/models.pkl', 'rb'))
+    token_vec = pickle.load(open('pickles/token_vec.pkl', 'rb'))
+    syllable_vec = pickle.load(open('pickles/syllable_vec.pkl', 'rb'))
+    topic_vec = pickle.load(open('pickles/topic_vec.pkl', 'rb'))
+    lda_topic = pickle.load(open('pickles/lda_topic.pkl', 'rb'))
+    print('Load file successfully')
 
-    # Kafka produce
-    json_payload = json.dumps(result)
-    json_payload = str.encode(json_payload)
+    for msg in consumer:
+        print('Diagnose process is started')
+        result = transformQuery(models, token_vec, syllable_vec, topic_vec, msg.value['symptom'])
 
-    producer.send(PRODUCER_TOPIC_NAME, json_payload)
-    producer.flush()
+        # Kafka produce
+        json_payload = json.dumps(result)
+        json_payload = str.encode(json_payload)
+
+        producer.send(PRODUCER_TOPIC_NAME, json_payload)
+        producer.flush()
