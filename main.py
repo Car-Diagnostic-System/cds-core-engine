@@ -31,26 +31,25 @@ s3 = boto3.resource(
 )
 
 def word_tokenizer(word, whitespace=False):
-    global trie
     token_word = word_tokenize(text=word, keep_whitespace=whitespace, custom_dict=trie)
     return token_word
 
 from itertools import chain
 def syllable_tokenizer(word, whitespace=False):
     syllable_word = subword_tokenize(word, engine='ssg', keep_whitespace=whitespace)
-    syllable_word = [' '.join(word_tokenizer(w)).split() for w in syllable_word]
+    syllable_word = [word_tokenizer(w, whitespace) for w in syllable_word]
     syllable_word = list(chain.from_iterable(syllable_word))
     return syllable_word
 
 def text_processor(text, whitespace=True):
     text = [w.lower() for w in word_tokenizer(text, whitespace)]
     text = [word.translate(str.maketrans('', '', string.punctuation + u'\xa0')) for word in text]
-    text = [word for word in text if not word.isnumeric()]
-    text = [word for word in text if len(word) > 1]
+    # NOTE: Remove number from text ***may be used
+    # text = [word for word in text if not word.isnumeric()]
     text = ''.join(text)
     return text
 
-def tranformQuery(models, token_vec, syllable_vec, topic_vec, query):
+def transformQuery(models, token_vec, syllable_vec, topic_vec, query):
     tv = token_vec.transform([query])
     sv = syllable_vec.transform([query])
     tpv = topic_vec.transform([query])
@@ -83,9 +82,8 @@ lda_topic = pickle.load(open('pickles/lda_topic.pkl', 'rb'))
 print('Load file successfully')
 
 for msg in consumer:
-    print(msg)
-    result = tranformQuery(models, token_vec, syllable_vec, topic_vec, msg.value['symptom'])
-    print(result)
+    print('Diagnose process is started')
+    result = transformQuery(models, token_vec, syllable_vec, topic_vec, msg.value['symptom'])
 
     # Kafka produce
     json_payload = json.dumps(result)
