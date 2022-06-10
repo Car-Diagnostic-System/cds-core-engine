@@ -30,13 +30,13 @@ s3 = boto3.resource(
     aws_secret_access_key='6fOkeYvsWNcHMV6/0HmePYpoA3p0C45IIfLC7fId'
 )
 
-def word_tokenizer(word, whitespace=False):
-    token_word = word_tokenize(text=word, keep_whitespace=whitespace, custom_dict=trie)
+def word_tokenizer(text , whitespace=False):
+    token_word = word_tokenize(text=text , keep_whitespace=whitespace, custom_dict=trie)
     return token_word
 
 from itertools import chain
-def syllable_tokenizer(word, whitespace=False):
-    syllable_word = subword_tokenize(word, engine='ssg', keep_whitespace=whitespace)
+def syllable_tokenizer(text , whitespace=False):
+    syllable_word = subword_tokenize(text, engine='ssg', keep_whitespace=whitespace)
     syllable_word = [word_tokenizer(w, whitespace) for w in syllable_word]
     syllable_word = list(chain.from_iterable(syllable_word))
     return syllable_word
