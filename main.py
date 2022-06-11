@@ -7,6 +7,7 @@ import boto3
 from kafka import KafkaConsumer, KafkaProducer
 from pythainlp import word_tokenize, subword_tokenize
 from scipy.sparse import hstack
+from itertools import chain
 
 CONSUMER_TOPIC_NAME = "QUERY"
 PRODUCER_TOPIC_NAME = "QUERY-RESPONSE"
@@ -30,16 +31,29 @@ s3 = boto3.resource(
     aws_secret_access_key='6fOkeYvsWNcHMV6/0HmePYpoA3p0C45IIfLC7fId'
 )
 
-def word_tokenizer(text , whitespace=False):
-    token_word = word_tokenize(text=text , keep_whitespace=whitespace, custom_dict=trie)
-    return token_word
+class Diagnose:
+    @staticmethod
+    def transformQuery(models, token_vec, syllable_vec, topic_vec, query):
+        tv = token_vec.transform([query])
+        sv = syllable_vec.transform([query])
+        tpv = topic_vec.transform([query])
+        query_vec = hstack([tv, sv, tpv])
+        results = {}
+        for m in models:
+            results[m['part']] = m['model'].predict_proba(query_vec)[0][1]
+        return dict(sorted(results.items(), key=lambda x: x[1], reverse=True)[:5])
 
-from itertools import chain
-def syllable_tokenizer(text , whitespace=False):
-    syllable_word = subword_tokenize(text, engine='ssg', keep_whitespace=whitespace)
-    syllable_word = [word_tokenizer(w, whitespace) for w in syllable_word]
-    syllable_word = list(chain.from_iterable(syllable_word))
-    return syllable_word
+    @staticmethod
+    def download_s3_folder(bucket_name, s3_folder, local_dir=None):
+        bucket = s3.Bucket(bucket_name)
+        for obj in bucket.objects.filter(Prefix=s3_folder):
+            target = obj.key if local_dir is None \
+                else os.path.join(local_dir, os.path.relpath(obj.key, s3_folder))
+            if not os.path.exists(os.path.dirname(target)):
+                os.makedirs(os.path.dirname(target))
+            if obj.key[-1] == '/':
+                continue
+            bucket.download_file(obj.key, target)
 
 def text_processor(text, whitespace=True):
     text = [w.lower() for w in word_tokenizer(text, whitespace)]
@@ -49,30 +63,20 @@ def text_processor(text, whitespace=True):
     text = ''.join(text)
     return text
 
-def transformQuery(models, token_vec, syllable_vec, topic_vec, query):
-    tv = token_vec.transform([query])
-    sv = syllable_vec.transform([query])
-    tpv = topic_vec.transform([query])
-    query_vec = hstack([tv, sv, tpv])
-    results = {}
-    for m in models:
-        results[m['part']] = m['model'].predict_proba(query_vec)[0][1]
-    return dict(sorted(results.items(), key=lambda x: x[1], reverse=True)[:5])
+def word_tokenizer(text , whitespace=False):
+    token_word = word_tokenize(text=text , keep_whitespace=whitespace, custom_dict=trie)
+    return token_word
 
-def download_s3_folder(bucket_name, s3_folder, local_dir=None):
-    bucket = s3.Bucket(bucket_name)
-    for obj in bucket.objects.filter(Prefix=s3_folder):
-        target = obj.key if local_dir is None \
-            else os.path.join(local_dir, os.path.relpath(obj.key, s3_folder))
-        if not os.path.exists(os.path.dirname(target)):
-            os.makedirs(os.path.dirname(target))
-        if obj.key[-1] == '/':
-            continue
-        bucket.download_file(obj.key, target)
+def syllable_tokenizer(text , whitespace=False):
+    syllable_word = subword_tokenize(text, engine='ssg', keep_whitespace=whitespace)
+    syllable_word = [word_tokenizer(w, whitespace) for w in syllable_word]
+    syllable_word = list(chain.from_iterable(syllable_word))
+    return syllable_word
+
 
 
 if __name__ == '__main__':
-    download_s3_folder('cds-bucket', 'pickles')
+    Diagnose.download_s3_folder('cds-bucket', 'pickles')
 
     # NOTE: Download pickle file from s3
     trie = pickle.load(open('pickles/trie.pkl', 'rb'))
@@ -85,7 +89,7 @@ if __name__ == '__main__':
 
     for msg in consumer:
         print('Diagnose process is started')
-        result = transformQuery(models, token_vec, syllable_vec, topic_vec, msg.value['symptom'])
+        result = Diagnose.transformQuery(models, token_vec, syllable_vec, topic_vec, msg.value['symptom'])
 
         # Kafka produce
         json_payload = json.dumps(result)
