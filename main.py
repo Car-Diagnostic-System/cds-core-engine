@@ -33,8 +33,8 @@ s3 = boto3.resource(
 
 class Diagnose:
     @staticmethod
-    def transformQuery(models, token_vec, syllable_vec, topic_vec, query):
-        tv = token_vec.transform([query])
+    def transformQuery(query):
+        tv = word_vec.transform([query])
         sv = syllable_vec.transform([query])
         tpv = topic_vec.transform([query])
         query_vec = hstack([tv, sv, tpv])
@@ -73,15 +73,13 @@ def syllable_tokenizer(text , whitespace=False):
     syllable_word = list(chain.from_iterable(syllable_word))
     return syllable_word
 
-
-
 if __name__ == '__main__':
     Diagnose.download_s3_folder('cds-bucket', 'pickles')
 
     # NOTE: Download pickle file from s3
     trie = pickle.load(open('pickles/trie.pkl', 'rb'))
     models = pickle.load(open('pickles/models.pkl', 'rb'))
-    token_vec = pickle.load(open('pickles/token_vec.pkl', 'rb'))
+    word_vec = pickle.load(open('pickles/word_vec.pkl', 'rb'))
     syllable_vec = pickle.load(open('pickles/syllable_vec.pkl', 'rb'))
     topic_vec = pickle.load(open('pickles/topic_vec.pkl', 'rb'))
     lda_topic = pickle.load(open('pickles/lda_topic.pkl', 'rb'))
@@ -89,7 +87,7 @@ if __name__ == '__main__':
 
     for msg in consumer:
         print('Diagnose process is started')
-        result = Diagnose.transformQuery(models, token_vec, syllable_vec, topic_vec, msg.value['symptom'])
+        result = Diagnose.transformQuery(msg.value['symptom'])
 
         # Kafka produce
         json_payload = json.dumps(result)
