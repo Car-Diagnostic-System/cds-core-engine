@@ -82,7 +82,6 @@ if __name__ == '__main__':
     word_vec = pickle.load(open('pickles/word_vec.pkl', 'rb'))
     syllable_vec = pickle.load(open('pickles/syllable_vec.pkl', 'rb'))
     topic_vec = pickle.load(open('pickles/topic_vec.pkl', 'rb'))
-    lda_topic = pickle.load(open('pickles/lda_topic.pkl', 'rb'))
     print('Load file successfully')
 
     for msg in consumer:
