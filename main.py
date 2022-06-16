@@ -33,17 +33,6 @@ s3 = boto3.resource(
 
 class Diagnose:
     @staticmethod
-    def transformQuery(query):
-        tv = word_vec.transform([query])
-        sv = syllable_vec.transform([query])
-        tpv = topic_vec.transform([query])
-        query_vec = hstack([tv, sv, tpv])
-        results = {}
-        for m in models:
-            results[m['part']] = m['model'].predict_proba(query_vec)[0][1]
-        return dict(sorted(results.items(), key=lambda x: x[1], reverse=True)[:5])
-
-    @staticmethod
     def download_s3_folder(bucket_name, s3_folder, local_dir=None):
         bucket = s3.Bucket(bucket_name)
         try:
@@ -77,22 +66,29 @@ def syllable_tokenizer(text , whitespace=False):
     syllable_word = list(chain.from_iterable(syllable_word))
     return syllable_word
 
-Diagnose.download_s3_folder('cds-bucket', 'pickles')
 
-# NOTE: Download pickle file from s3
-trie = pickle.load(open('C:/Users/Bungkai/CDS project/cds-core-engine/pickles/trie.pkl', 'rb'))
-models = pickle.load(open('C:/Users/Bungkai/CDS project/cds-core-engine/pickles/models.pkl', 'rb'))
-word_vec = pickle.load(open('C:/Users/Bungkai/CDS project/cds-core-engine/pickles/word_vec.pkl', 'rb'))
-syllable_vec = pickle.load(open('C:/Users/Bungkai/CDS project/cds-core-engine/pickles/syllable_vec.pkl', 'rb'))
-topic_vec = pickle.load(open('C:/Users/Bungkai/CDS project/cds-core-engine/pickles/topic_vec.pkl', 'rb'))
 
 if __name__ == '__main__':
+    Diagnose.download_s3_folder('cds-bucket', 'pickles')
+    # NOTE: Download pickle file from s3
+    trie = pickle.load(open('pickles/trie.pkl', 'rb'))
+    models = pickle.load(open('pickles/models.pkl', 'rb'))
+    word_vec = pickle.load(open('pickles/word_vec.pkl', 'rb'))
+    syllable_vec = pickle.load(open('pickles/syllable_vec.pkl', 'rb'))
+    topic_vec = pickle.load(open('pickles/topic_vec.pkl', 'rb'))
     print('Load file successfully')
 
     for msg in consumer:
         print('Diagnose process is started')
-        result = Diagnose.transformQuery(msg.value['symptom'])
+        tv = word_vec.transform([msg.value['symptom']])
+        sv = syllable_vec.transform([msg.value['symptom']])
+        tpv = topic_vec.transform([msg.value['symptom']])
+        query_vec = hstack([tv, sv, tpv])
 
+        results = {}
+        for m in models:
+            results[m['part']] = m['model'].predict_proba(query_vec)[0][1]
+        result = dict(sorted(results.items(), key=lambda x: x[1], reverse=True)[:5])
         # Kafka produce
         json_payload = json.dumps(result)
         json_payload = str.encode(json_payload)
