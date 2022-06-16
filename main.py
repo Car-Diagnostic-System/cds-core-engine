@@ -46,14 +46,18 @@ class Diagnose:
     @staticmethod
     def download_s3_folder(bucket_name, s3_folder, local_dir=None):
         bucket = s3.Bucket(bucket_name)
-        for obj in bucket.objects.filter(Prefix=s3_folder):
-            target = obj.key if local_dir is None \
-                else os.path.join(local_dir, os.path.relpath(obj.key, s3_folder))
-            if not os.path.exists(os.path.dirname(target)):
-                os.makedirs(os.path.dirname(target))
-            if obj.key[-1] == '/':
-                continue
-            bucket.download_file(obj.key, target)
+        try:
+            for obj in bucket.objects.filter(Prefix=s3_folder):
+                target = obj.key if local_dir is None \
+                    else os.path.join(local_dir, os.path.relpath(obj.key, s3_folder))
+                if not os.path.exists(os.path.dirname(target)):
+                    os.makedirs(os.path.dirname(target))
+                if obj.key[-1] == '/':
+                    continue
+                bucket.download_file(obj.key, target)
+            return "download completed"
+        except:
+            return "download failed"
 
 def text_processor(text, whitespace=True):
     text = [w.lower() for w in word_tokenizer(text, whitespace)]
@@ -73,15 +77,16 @@ def syllable_tokenizer(text , whitespace=False):
     syllable_word = list(chain.from_iterable(syllable_word))
     return syllable_word
 
-if __name__ == '__main__':
-    Diagnose.download_s3_folder('cds-bucket', 'pickles')
+Diagnose.download_s3_folder('cds-bucket', 'pickles')
 
-    # NOTE: Download pickle file from s3
-    trie = pickle.load(open('pickles/trie.pkl', 'rb'))
-    models = pickle.load(open('pickles/models.pkl', 'rb'))
-    word_vec = pickle.load(open('pickles/word_vec.pkl', 'rb'))
-    syllable_vec = pickle.load(open('pickles/syllable_vec.pkl', 'rb'))
-    topic_vec = pickle.load(open('pickles/topic_vec.pkl', 'rb'))
+# NOTE: Download pickle file from s3
+trie = pickle.load(open('C:/Users/Bungkai/CDS project/cds-core-engine/pickles/trie.pkl', 'rb'))
+models = pickle.load(open('C:/Users/Bungkai/CDS project/cds-core-engine/pickles/models.pkl', 'rb'))
+word_vec = pickle.load(open('C:/Users/Bungkai/CDS project/cds-core-engine/pickles/word_vec.pkl', 'rb'))
+syllable_vec = pickle.load(open('C:/Users/Bungkai/CDS project/cds-core-engine/pickles/syllable_vec.pkl', 'rb'))
+topic_vec = pickle.load(open('C:/Users/Bungkai/CDS project/cds-core-engine/pickles/topic_vec.pkl', 'rb'))
+
+if __name__ == '__main__':
     print('Load file successfully')
 
     for msg in consumer:
