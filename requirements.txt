@@ -1,4 +1,4 @@
-boto3==1.21.32
-kafka==1.3.5
+boto3==1.24.31
+kafka_python==2.0.2
 pythainlp==3.0.8
-scipy==1.7.3
+scipy==1.8.1
