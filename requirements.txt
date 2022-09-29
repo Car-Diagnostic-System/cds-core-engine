@@ -2,3 +2,4 @@ boto3==1.24.31
 kafka_python==2.0.2
 pythainlp==3.0.8
 scipy==1.8.1
+python-dotenv==0.21.0
