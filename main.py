@@ -1,13 +1,14 @@
 import json
-import os
 import string
 import pickle
-
 import boto3
 from kafka import KafkaConsumer, KafkaProducer
 from pythainlp import word_tokenize, subword_tokenize
 from scipy.sparse import hstack
 from itertools import chain
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 CONSUMER_TOPIC_NAME = "QUERY"
 PRODUCER_TOPIC_NAME = "QUERY-RESPONSE"
@@ -26,11 +27,10 @@ consumer = KafkaConsumer(
 
 s3 = boto3.resource(
     service_name='s3',
-    region_name='ap-southeast-1',
-    aws_access_key_id='AKIAS6J3LCRT4MC74Y75',
-    aws_secret_access_key='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'
+    region_name=os.getenv('AWS_REGION'),
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
 )
-
 class Diagnose:
     @staticmethod
     def download_s3_folder(bucket_name, s3_folder, local_dir=None):
@@ -47,6 +47,7 @@ class Diagnose:
             return "download completed"
         except:
             return "download failed"
+
 
 def text_processor(text, whitespace=True):
     text = [w.lower() for w in word_tokenizer(text, whitespace)]
@@ -66,7 +67,7 @@ def syllable_tokenizer(text , whitespace=False):
     syllable_word = list(chain.from_iterable(syllable_word))
     return syllable_word
 
-if __name__ == '__main_ _':
+if __name__ == '__main__':
     Diagnose.download_s3_folder('cds-bucket', 'pickles')
     # NOTE: Download pickle file from s3
     trie = pickle.load(open('pickles/trie.pkl', 'rb'))
