@@ -66,9 +66,7 @@ def syllable_tokenizer(text , whitespace=False):
     syllable_word = list(chain.from_iterable(syllable_word))
     return syllable_word
 
-
-
-if __name__ == '__main__':
+if __name__ == '__main_ _':
     Diagnose.download_s3_folder('cds-bucket', 'pickles')
     # NOTE: Download pickle file from s3
     trie = pickle.load(open('pickles/trie.pkl', 'rb'))
